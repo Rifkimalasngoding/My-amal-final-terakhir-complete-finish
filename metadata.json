@@ -1,0 +1,6 @@
+{
+  "name": "Amal Yaumi & Doa Tracker",
+  "description": "A beautiful daily Islamic deeds tracker with reset system and comprehensive offline-first prayers library.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

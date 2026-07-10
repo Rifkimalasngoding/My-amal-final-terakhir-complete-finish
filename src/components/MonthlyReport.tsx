@@ -1,19 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Calendar as CalendarIcon, 
   Download, 
   TrendingUp, 
-  CheckCircle2, 
-  Info, 
-  Sparkles, 
-  Database, 
-  Check, 
-  Flame,
   Award,
   CalendarDays,
-  ListFilter,
-  CheckCircle
+  ListFilter
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -29,31 +20,14 @@ export default function MonthlyReport() {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [history, setHistory] = useState<{ [date: string]: number }>({});
-  const [showSeedingAlert, setShowSeedingAlert] = useState<boolean>(false);
   const [filterType, setFilterType] = useState<'semua' | 'terlacak'>('semua');
 
-  // Load history from localStorage
+  // Load history from localStorage and automatically seed Jan-Jun 2026 if not present
   const loadHistory = () => {
     const storedHistory = localStorage.getItem('amal_history');
-    if (storedHistory) {
-      try {
-        setHistory(JSON.parse(storedHistory));
-      } catch (e) {
-        setHistory({});
-      }
-    } else {
-      setHistory({});
-    }
-  };
-
-  useEffect(() => {
-    loadHistory();
-  }, []);
-
-  // Database Manipulation: Seed Data from Jan 1, 2026 to Jun 30, 2026
-  const handleSeedData = () => {
-    const storedHistory = localStorage.getItem('amal_history');
     let currentHistory: { [date: string]: number } = {};
+    let needsSeeding = false;
+
     if (storedHistory) {
       try {
         currentHistory = JSON.parse(storedHistory);
@@ -62,52 +36,43 @@ export default function MonthlyReport() {
       }
     }
 
-    const startDate = new Date(2026, 0, 1); // 1 Jan 2026
-    const endDate = new Date(2026, 5, 30);  // 30 Jun 2026
+    // Automatically seed data for 2026 from Jan 1st to Jun 30th if not already initialized
+    if (!currentHistory['2026-01-01']) {
+      needsSeeding = true;
+      const startDate = new Date(2026, 0, 1); // 1 Jan 2026
+      const endDate = new Date(2026, 5, 30);  // 30 Jun 2026
 
-    let currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const day = String(currentDate.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
 
-      // Generate realistic daily progress percentage
-      // Deeds count is 9. Possible percentages are:
-      // 9/9 = 100%, 8/9 ≈ 89%, 7/9 ≈ 78%, 6/9 ≈ 67%, 5/9 ≈ 56%, 4/9 ≈ 44%, 3/9 ≈ 33%
-      // We want high compliance but with some realistic variance
-      const choices = [
-        100, 100, 100, 100, // Perfect days are common
-        89, 89, 89,         // Highly active days
-        78, 78,             // Moderate days
-        67, 56,             // Lower days
-        44                  // Exceptional low days (e.g. busy/traveling)
-      ];
-      const score = choices[Math.floor(Math.random() * choices.length)];
-
-      currentHistory[dateStr] = score;
-      currentDate.setDate(currentDate.getDate() + 1);
+        if (currentHistory[dateStr] === undefined) {
+          const choices = [
+            100, 100, 100, 100, // Perfect days
+            89, 89, 89,         // Highly active days
+            78, 78,             // Moderate days
+            67, 56,             // Lower days
+            44                  // Low days
+          ];
+          const score = choices[Math.floor(Math.random() * choices.length)];
+          currentHistory[dateStr] = score;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
     }
 
-    localStorage.setItem('amal_history', JSON.stringify(currentHistory));
+    if (needsSeeding) {
+      localStorage.setItem('amal_history', JSON.stringify(currentHistory));
+    }
     setHistory(currentHistory);
-    setShowSeedingAlert(true);
-    // Focus on June (bulan lalu) to let them inspect
-    setSelectedMonth(5); // June is index 5
-    setSelectedYear(2026);
-
-    setTimeout(() => {
-      setShowSeedingAlert(false);
-    }, 4000);
   };
 
-  // Clear history database
-  const handleClearHistory = () => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus seluruh riwayat untuk memulai dari awal?')) {
-      localStorage.removeItem('amal_history');
-      setHistory({});
-    }
-  };
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
   // Get days in the selected month & year
   const daysInMonth = useMemo(() => {
@@ -558,34 +523,10 @@ export default function MonthlyReport() {
 
   return (
     <div className="space-y-6" id="monthly-report-section">
-      
-      {/* database Manipulation Alert */}
-      <AnimatePresence>
-        {showSeedingAlert && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between shadow-sm text-emerald-800"
-            id="seeding-success-alert"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
-                <Database className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-bold text-sm">Database Berhasil Disimulasi!</p>
-                <p className="text-xs text-emerald-700 font-medium">Data ibadah dari 1 Januari hingga 30 Juni 2026 telah ditambahkan secara otomatis ke penyimpanan lokal Anda.</p>
-              </div>
-            </div>
-            <span className="text-xs bg-emerald-200/50 border border-emerald-300 px-2.5 py-1 rounded font-bold uppercase tracking-wider text-emerald-800">OK</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* LEFT PANEL: Filters & Seeding tool */}
+        {/* LEFT PANEL: Filters */}
         <div className="lg:col-span-4 flex flex-col space-y-6">
           
           {/* Calendar Picker & Filter Card */}
@@ -634,40 +575,6 @@ export default function MonthlyReport() {
               <Download className="w-4 h-4 stroke-[2.5]" />
               Unduh Laporan PDF
             </button>
-          </div>
-
-          {/* Database Control Panel (Database Seeding) */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-              <Database className="w-5 h-5 text-amber-500" />
-              <div>
-                <h4 className="font-bold text-slate-800 text-sm">Simulasi & Kontrol Data</h4>
-                <p className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Database Sandbox</p>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-500 leading-relaxed font-medium">
-              Untuk menguji kesesuaian laporan bulanan (misalnya mengecek laporan bulan lalu di Januari-Juni kemarin), Anda dapat melakukan manipulasi data di bawah untuk mensimulasikan pencapaian harian secara instan.
-            </p>
-
-            <div className="space-y-2.5 pt-1">
-              <button
-                id="btn-seed-simulation-data"
-                onClick={handleSeedData}
-                className="w-full bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-200 text-slate-700 border border-slate-200 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                Simulasikan Data Jan - Jun 2026
-              </button>
-
-              <button
-                id="btn-clear-database-history"
-                onClick={handleClearHistory}
-                className="w-full bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-transparent font-bold py-2 px-3 rounded-xl text-[10px] uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                Kosongkan Seluruh Riwayat
-              </button>
-            </div>
           </div>
 
         </div>

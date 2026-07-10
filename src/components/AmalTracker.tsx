@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Circle, Flame, Calendar, Clock, Trophy, RefreshCw, Star, Info, Check } from 'lucide-react';
 import { Deed } from '../types';
 import { DEFAULT_DEEDS as INITIAL_DEEDS } from '../data/deeds';
+import MonthlyReport from './MonthlyReport';
 
 export default function AmalTracker() {
   const [deeds] = useState<Deed[]>(INITIAL_DEEDS);
@@ -11,6 +12,7 @@ export default function AmalTracker() {
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [timeLeftToReset, setTimeLeftToReset] = useState<string>('');
+  const [subTab, setSubTab] = useState<'checklist' | 'laporan'>('checklist');
 
   // 1. Helper to get YYYY-MM-DD in local timezone
   const getLocalDateString = (date: Date = new Date()) => {
@@ -189,7 +191,35 @@ export default function AmalTracker() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8" id="amal-tracker-section">
+    <div className="space-y-6" id="amal-tracker-container">
+      {/* Sub-tab navigation */}
+      <div className="flex border-b border-slate-200 pb-px gap-2">
+        <button
+          id="btn-subtab-checklist"
+          onClick={() => setSubTab('checklist')}
+          className={`px-5 py-2.5 font-bold text-sm border-b-2 transition-all cursor-pointer ${
+            subTab === 'checklist'
+              ? 'border-emerald-700 text-emerald-800 font-extrabold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Checklist Harian
+        </button>
+        <button
+          id="btn-subtab-laporan"
+          onClick={() => setSubTab('laporan')}
+          className={`px-5 py-2.5 font-bold text-sm border-b-2 transition-all cursor-pointer ${
+            subTab === 'laporan'
+              ? 'border-emerald-700 text-emerald-800 font-extrabold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Laporan Bulanan
+        </button>
+      </div>
+
+      {subTab === 'checklist' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8" id="amal-tracker-section">
       {/* KIRI: Daftar Checklist */}
       <div className="lg:col-span-8 flex flex-col space-y-6">
         
@@ -440,6 +470,10 @@ export default function AmalTracker() {
         </AnimatePresence>
 
       </div>
+    </div>
+    ) : (
+      <MonthlyReport />
+    )}
     </div>
   );
 }
